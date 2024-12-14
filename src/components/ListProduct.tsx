@@ -1,5 +1,6 @@
 import { Button, Card, Flex, List, Pagination, Tag, Typography } from "antd";
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 
 const { Text } = Typography;
@@ -25,6 +26,8 @@ const StyledCard = styled(Card)`
 `;
 
 export const ListProduct: React.FC<ListProductProps> = ({ products }) => {
+  const navigate = useNavigate();
+
   return (
     <>
       <List
@@ -33,7 +36,17 @@ export const ListProduct: React.FC<ListProductProps> = ({ products }) => {
         renderItem={(item) => (
           <List.Item>
             <StyledCard
-              cover={<img alt={item.name} src={item.image} height={180} />}
+              cover={
+                <img
+                  alt={item.name}
+                  src={item.image}
+                  height={180}
+                  style={{
+                    cursor: "pointer",
+                  }}
+                  onClick={() => navigate(`products/${item.id}`)}
+                />
+              }
               actions={[
                 <Flex
                   justify="space-between"

@@ -21,15 +21,17 @@ export const Header = () => {
           Nhóm 3
         </Title>
       </Link>
-      <Badge count={1}>
-        <ShoppingCartOutlined
-          style={{
-            cursor: "pointer",
-            fontSize: "24px",
-            color: "white",
-          }}
-        />
-      </Badge>
+      <Link to={ROUTES.cart}>
+        <Badge count={1}>
+          <ShoppingCartOutlined
+            style={{
+              cursor: "pointer",
+              fontSize: "24px",
+              color: "white",
+            }}
+          />
+        </Badge>
+      </Link>
     </AntHeader>
   );
 };

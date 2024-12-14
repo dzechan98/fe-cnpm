@@ -3,18 +3,23 @@ import {
   Typography,
   Row,
   Col,
-  Image,
   Tag,
   Button,
   Descriptions,
-  List,
-  Card,
   InputNumber,
+  Select,
+  Breadcrumb,
 } from "antd";
-import { ShoppingCartOutlined, ThunderboltOutlined } from "@ant-design/icons";
+import {
+  HomeOutlined,
+  ShoppingCartOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons";
 import { Header } from "../components/Header";
+import ImageCarousel from "../components/ImageCarousel";
 
 const { Title, Paragraph } = Typography;
+const { Option } = Select;
 
 const product = {
   id: 1,
@@ -24,46 +29,38 @@ const product = {
   category: "Electronics",
   sold: 1234,
   inStock: 50,
+  sizes: ["Small", "Medium", "Large"],
+  colors: ["Black", "White", "Blue", "Red"],
   description:
     "Experience crystal-clear audio with our premium wireless headphones. Featuring advanced noise-cancellation technology, comfortable over-ear design, and long-lasting battery life, these headphones are perfect for music enthusiasts and professionals alike.",
   price: 199.99,
   discountPercentage: 15,
-  relatedProducts: [
-    {
-      id: 2,
-      title: "Wireless Earbuds",
-      image:
-        "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6_tn.webp",
-      price: 89.99,
-    },
-    {
-      id: 3,
-      title: "Bluetooth Speaker",
-      image:
-        "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6_tn.webp",
-      price: 129.99,
-    },
-    {
-      id: 4,
-      title: "Noise-Cancelling Headphones",
-      image:
-        "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6_tn.webp",
-      price: 249.99,
-    },
-  ],
 };
 
 export const DetailProduct: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+
   const discountedPrice =
     product.price * (1 - product.discountPercentage / 100);
 
   const handleAddToCart = () => {
-    console.log("Added to cart:", product.id);
+    console.log("Added to cart:", {
+      productId: product.id,
+      quantity,
+      size: selectedSize,
+      color: selectedColor,
+    });
   };
 
   const handleOrder = () => {
-    console.log("Ordered:", product.id);
+    console.log("Ordered:", {
+      productId: product.id,
+      quantity,
+      size: selectedSize,
+      color: selectedColor,
+    });
   };
 
   return (
@@ -74,15 +71,36 @@ export const DetailProduct: React.FC = () => {
           padding: "20px",
         }}
       >
+        <div
+          style={{
+            marginBottom: "20px",
+          }}
+        >
+          <Breadcrumb
+            items={[
+              {
+                href: "",
+                title: <HomeOutlined />,
+              },
+              {
+                href: "",
+                title: "Category",
+              },
+              {
+                title: "Application",
+              },
+            ]}
+          />
+        </div>
         <Row gutter={[32, 32]}>
           <Col xs={24} md={12}>
-            <Image src={product.image} alt={product.title} width="100%" />
+            <ImageCarousel />
           </Col>
           <Col xs={24} md={12}>
             <Title level={2}>{product.title}</Title>
             <Tag color="blue">{product.category}</Tag>
             <Descriptions column={1} style={{ marginTop: "16px" }}>
-              <Descriptions.Item label="Price">
+              <Descriptions.Item label="Giá">
                 <span
                   style={{ textDecoration: "line-through", marginRight: "8px" }}
                 >
@@ -101,27 +119,59 @@ export const DetailProduct: React.FC = () => {
                   {product.discountPercentage}% OFF
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="Sold">{product.sold}</Descriptions.Item>
-              <Descriptions.Item label="In Stock">
+              <Descriptions.Item label="Đã bán">
+                {product.sold}
+              </Descriptions.Item>
+              <Descriptions.Item label="Có sẵn">
                 {product.inStock}
               </Descriptions.Item>
             </Descriptions>
             <Paragraph style={{ marginTop: "16px" }}>
               {product.description}
             </Paragraph>
+            <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
+              <Col span={12}>
+                <Typography.Text strong>Size:</Typography.Text>
+                <Select
+                  style={{ width: "100%" }}
+                  placeholder="Select Size"
+                  onChange={(value) => setSelectedSize(value)}
+                >
+                  {product.sizes.map((size) => (
+                    <Option key={size} value={size}>
+                      {size}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col span={12}>
+                <Typography.Text strong>Màu:</Typography.Text>
+                <Select
+                  style={{ width: "100%" }}
+                  placeholder="Select Color"
+                  onChange={(value) => setSelectedColor(value)}
+                >
+                  {product.colors.map((color) => (
+                    <Option key={color} value={color}>
+                      {color}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+            </Row>
             <Row
               align="middle"
               style={{ marginTop: "16px", marginBottom: "16px" }}
             >
               <Col span={8}>
-                <Typography.Text strong>Quantity:</Typography.Text>
+                <Typography.Text strong>Số lượng:</Typography.Text>
               </Col>
               <Col span={16}>
                 <InputNumber
                   min={1}
                   max={product.inStock}
                   value={quantity}
-                  onChange={(value) => setQuantity(Number(value))}
+                  onChange={(value) => setQuantity(value as number)}
                 />
               </Col>
             </Row>
@@ -152,30 +202,6 @@ export const DetailProduct: React.FC = () => {
             </Row>
           </Col>
         </Row>
-        <div style={{ marginTop: "48px" }}>
-          <Title level={3}>Related Products</Title>
-          <List
-            grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4 }}
-            dataSource={product.relatedProducts}
-            renderItem={(item) => (
-              <List.Item>
-                <Card
-                  cover={<img alt={item.title} src={item.image} />}
-                  hoverable
-                >
-                  <Card.Meta
-                    title={item.title}
-                    description={
-                      <span style={{ color: "#f50" }}>
-                        ${item.price.toFixed(2)}
-                      </span>
-                    }
-                  />
-                </Card>
-              </List.Item>
-            )}
-          />
-        </div>
       </div>
     </>
   );
