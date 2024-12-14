@@ -66,15 +66,7 @@ const Thumbnail = styled.img<{ isActive: boolean }>`
   }
 `;
 
-const images = [
-  "https://images.unsplash.com/photo-1719937051124-91c677bc58fc?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxmZWF0dXJlZC1waG90b3MtZmVlZHwxfHx8ZW58MHx8fHx8",
-  "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6_tn.webp",
-  "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6_tn.webp",
-  "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6_tn.webp",
-  "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6_tn.webp",
-];
-
-const ImageCarousel: React.FC = () => {
+const ImageCarousel: React.FC<{ images: string[] }> = ({ images }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const carouselRef = React.useRef<any>(null);
 

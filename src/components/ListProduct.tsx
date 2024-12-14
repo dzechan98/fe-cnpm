@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Button, Card, Flex, List, Pagination, Tag, Typography } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
@@ -6,17 +7,21 @@ import styled from "styled-components";
 const { Text } = Typography;
 
 export interface Product {
-  id: number;
-  name: string;
-  category: string;
-  image: string;
-  sold: number;
-  stock: number;
-  price: number;
+  MaSanPham: string;
+  TenSanPham: string;
+  HinhAnh: string;
+  Gia: string;
+  SoLuong: string;
+  PhanTramGiam: string;
+  DaBan: string;
+  TenDanhMuc: string;
 }
 
 interface ListProductProps {
   products: Product[];
+  page: number;
+  total: number;
+  setPage: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const StyledCard = styled(Card)`
@@ -25,7 +30,12 @@ const StyledCard = styled(Card)`
   }
 `;
 
-export const ListProduct: React.FC<ListProductProps> = ({ products }) => {
+export const ListProduct: React.FC<ListProductProps> = ({
+  products,
+  page,
+  setPage,
+  total,
+}) => {
   const navigate = useNavigate();
 
   return (
@@ -38,13 +48,13 @@ export const ListProduct: React.FC<ListProductProps> = ({ products }) => {
             <StyledCard
               cover={
                 <img
-                  alt={item.name}
-                  src={item.image}
+                  alt={item.TenSanPham}
+                  src={item.HinhAnh}
                   height={180}
                   style={{
                     cursor: "pointer",
                   }}
-                  onClick={() => navigate(`products/${item.id}`)}
+                  onClick={() => navigate(`products/${item.MaSanPham}`)}
                 />
               }
               actions={[
@@ -66,36 +76,51 @@ export const ListProduct: React.FC<ListProductProps> = ({ products }) => {
               <Card.Meta
                 description={
                   <Flex vertical>
-                    <Text className="clamp-text">{item.name}</Text>
+                    <Text className="clamp-text">{item.TenSanPham}</Text>
                     <Flex gap={8} align="center">
+                      {Number(item.PhanTramGiam) > 0 && (
+                        <Text
+                          delete
+                          style={{
+                            fontSize: "11px",
+                          }}
+                        >
+                          {Number(item.Gia)} VNĐ
+                        </Text>
+                      )}
                       <Text
                         style={{
                           color: "#f69d7a",
                         }}
                       >
-                        đ{item.price.toFixed(2)}
+                        {Number(item.Gia) -
+                          (Number(item.Gia) * Number(item.PhanTramGiam)) /
+                            100}{" "}
+                        VNĐ
                       </Text>
-                      <Tag
-                        color="error"
-                        style={{
-                          height: "16px",
-                          fontSize: "10px",
-                          margin: 0,
-                          width: "32px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        -50%
-                      </Tag>
+                      {Number(item.PhanTramGiam) > 0 && (
+                        <Tag
+                          color="error"
+                          style={{
+                            height: "16px",
+                            fontSize: "10px",
+                            margin: 0,
+                            width: "40px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {`${Number(item.PhanTramGiam)}%`}
+                        </Tag>
+                      )}
                     </Flex>
                     <Text
                       style={{
                         fontSize: "12px",
                       }}
                     >
-                      Đã bán {item.sold}
+                      Đã bán {item.DaBan}
                     </Text>
                   </Flex>
                 }
@@ -104,7 +129,13 @@ export const ListProduct: React.FC<ListProductProps> = ({ products }) => {
           </List.Item>
         )}
       />
-      <Pagination align="center" defaultCurrent={1} total={50} />
+      <Pagination
+        align="center"
+        defaultCurrent={page}
+        pageSize={8}
+        total={total}
+        onChange={(p, _) => setPage(p)}
+      />
     </>
   );
 };

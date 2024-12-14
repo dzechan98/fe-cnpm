@@ -2,117 +2,57 @@ import { useEffect, useState } from "react";
 import { Layout, Menu, Row, Col, Input } from "antd";
 import { ShoppingOutlined, SearchOutlined } from "@ant-design/icons";
 import { Header } from "../components/Header";
-import { ListProduct, Product } from "../components/ListProduct";
+import { ListProduct } from "../components/ListProduct";
+import {
+  Category,
+  getListCategory,
+  getListProduct,
+  ListResponseProduct,
+} from "../api";
 
 const { Content, Sider } = Layout;
 
-const categories = [
-  "Electronics",
-  "Clothing",
-  "Books",
-  "Home & Garden",
-  "Sports & Outdoors",
-];
-
-const products: Product[] = [
-  {
-    id: 1,
-    name: "Ốp điện thoại IPhone sạc không dây từ tính đơn giản Tương thích .clamp-text .clamp-text .clamp-text .clamp-text .clamp-text ",
-    category: "Electronics",
-    price: 599.99,
-    image:
-      "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6@resize_w900_nl.webp",
-    sold: 120,
-    stock: 50,
-  },
-  {
-    id: 2,
-    name: "Laptop",
-    category: "Electronics",
-    price: 999.99,
-    image:
-      "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6@resize_w900_nl.webp",
-    sold: 80,
-    stock: 30,
-  },
-  {
-    id: 3,
-    name: "T-shirt",
-    category: "Clothing",
-    price: 19.99,
-    image:
-      "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6@resize_w900_nl.webp",
-    sold: 200,
-    stock: 100,
-  },
-  {
-    id: 4,
-    name: "Jeans",
-    category: "Clothing",
-    price: 49.99,
-    image:
-      "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6@resize_w900_nl.webp",
-    sold: 150,
-    stock: 75,
-  },
-  {
-    id: 5,
-    name: "Novel",
-    category: "Books",
-    price: 14.99,
-    image:
-      "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6@resize_w900_nl.webp",
-    sold: 300,
-    stock: 200,
-  },
-  {
-    id: 6,
-    name: "Cookbook",
-    category: "Books",
-    price: 24.99,
-    image:
-      "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6@resize_w900_nl.webp",
-    sold: 100,
-    stock: 50,
-  },
-  {
-    id: 7,
-    name: "Garden Tools Set",
-    category: "Home & Garden",
-    price: 79.99,
-    image:
-      "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6@resize_w900_nl.webp",
-    sold: 50,
-    stock: 25,
-  },
-  {
-    id: 8,
-    name: "Yoga Mat",
-    category: "Sports & Outdoors",
-    price: 29.99,
-    image:
-      "https://down-vn.img.susercontent.com/file/sg-11134201-7rblx-lnwul7heor2dd6@resize_w900_nl.webp",
-    sold: 180,
-    stock: 90,
-  },
-];
 export const Home = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
     "all"
   );
+  const [selected, setSelected] = useState("");
+
+  const [products, setProducts] = useState<ListResponseProduct>(
+    {} as ListResponseProduct
+  );
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredProducts, setFilteredProducts] = useState(products);
 
   useEffect(() => {
-    setFilteredProducts(
-      products.filter(
-        (product) =>
-          (selectedCategory === "all" ||
-            product.category === selectedCategory) &&
-          product.name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-  }, [selectedCategory, searchTerm]);
+    const fetchProducts = async () => {
+      try {
+        const response = await getListProduct(page, selected, searchTerm);
+        setProducts(response);
+      } catch (err) {
+        setProducts({} as ListResponseProduct);
+        console.error("Error fetching products:", err);
+      }
+    };
+
+    fetchProducts();
+  }, [page, selected, searchTerm]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await getListCategory();
+        setCategories(response);
+      } catch (err) {
+        setCategories([]);
+        console.error("Error fetching products:", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -125,12 +65,26 @@ export const Home = () => {
             style={{ height: "100%", borderRight: 0 }}
             onSelect={({ key }) => setSelectedCategory(key as string)}
           >
-            <Menu.Item key={"all"} onClick={() => setSelectedCategory("all")}>
+            <Menu.Item
+              key={"all"}
+              onClick={() => {
+                setSelectedCategory("all");
+                setSelected("");
+                setPage(1);
+              }}
+            >
               Tất cả danh mục
             </Menu.Item>
             {categories.map((category) => (
-              <Menu.Item key={category} icon={<ShoppingOutlined />}>
-                {category}
+              <Menu.Item
+                key={category.MaDanhMuc}
+                icon={<ShoppingOutlined />}
+                onClick={() => {
+                  setSelected(category.TenDanhMuc);
+                  setPage(1);
+                }}
+              >
+                {category.TenDanhMuc}
               </Menu.Item>
             ))}
           </Menu>
@@ -159,7 +113,12 @@ export const Home = () => {
                 />
               </Col>
             </Row>
-            <ListProduct products={filteredProducts} />
+            <ListProduct
+              products={products.products}
+              page={page}
+              setPage={setPage}
+              total={Number(products.total_pages) * 8}
+            />
           </Content>
         </Layout>
       </Layout>
