@@ -1,10 +1,12 @@
 import axios from "axios";
-import { Product } from "../components/ListProduct";
 
 const baseURL = "https://clbtinhocued.me";
 
 const axiosClient = axios.create({
   baseURL,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 export interface ListResponseProduct {
@@ -19,24 +21,49 @@ export interface Category {
   TenDanhMuc: string;
 }
 
-export interface DetailProduct {
+interface HinhAnhChiTiet {
+  MaHinhAnh: string;
+  DuongDan: string;
+}
+
+interface HinhAnh {
+  DuongDan: string;
+  ChiTiet: HinhAnhChiTiet[];
+}
+
+export interface Product {
   MaSanPham: string;
   TenSanPham: string;
-  DaBan: string;
   Gia: string;
+  GiaSauGiam: string;
+  DaBan: string;
   SoLuongConLai: string;
   TenDanhMuc: string;
   MoTa: string;
+  HinhAnh: HinhAnh;
+  Size: {
+    MaSize: string;
+    Size: string;
+  }[];
+  MauSac: {
+    MaMauSac: string;
+    MauSac: string;
+  }[];
   PhanTramGiam: string;
-  HinhAnh: {
-    DuongDan: string;
-    ChiTiet: {
-      MaHinhAnh: string;
-      DuongDan: string;
-    }[];
-  };
-  Size: string[];
-  MauSac: string[];
+}
+
+export interface OrderPayload {
+  items: {
+    MaSanPham: string;
+    SoLuong: number;
+    MaMauSac: string;
+    MaSize: string;
+  }[];
+}
+
+export interface LoginPayload {
+  Email: string;
+  MatKhau: string;
 }
 
 export const getListProduct = async (
@@ -50,14 +77,17 @@ export const getListProduct = async (
   return data.data;
 };
 
-export const getDetailProduct = async (MaSanPham: string) => {
-  const data = await axiosClient.get<DetailProduct>("/hinhanh.php", {
-    params: { MaSanPham },
-  });
+export const getListCategory = async () => {
+  const data = await axiosClient.get<Category[]>("/danhmuc.php");
   return data.data;
 };
 
-export const getListCategory = async () => {
-  const data = await axiosClient.get<Category[]>("/danhmuc.php");
+export const createOrder = async (payload: OrderPayload) => {
+  const data = await axiosClient.post<{ message: string }>(
+    "/dathang.php",
+    payload,
+    { withCredentials: true }
+  );
+
   return data.data;
 };

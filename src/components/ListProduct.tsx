@@ -1,21 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Button, Card, Flex, List, Pagination, Tag, Typography } from "antd";
+import { Card, Flex, List, Pagination, Tag, Typography } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import { Product } from "../api";
 
 const { Text } = Typography;
-
-export interface Product {
-  MaSanPham: string;
-  TenSanPham: string;
-  HinhAnh: string;
-  Gia: string;
-  SoLuong: string;
-  PhanTramGiam: string;
-  DaBan: string;
-  TenDanhMuc: string;
-}
 
 interface ListProductProps {
   products: Product[];
@@ -24,10 +14,30 @@ interface ListProductProps {
   setPage: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const StyledCard = styled(Card)`
+const StyledCard = styled(Card)<{ outOfStock?: boolean }>`
+  overflow: hidden;
   .ant-card-body {
     padding: 12px;
   }
+  ${(props) =>
+    props.outOfStock &&
+    `
+    opacity: 0.7;
+    filter: grayscale(50%);
+  `}
+`;
+
+const OutOfStockOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
 `;
 
 export const ListProduct: React.FC<ListProductProps> = ({
@@ -38,96 +48,111 @@ export const ListProduct: React.FC<ListProductProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  const handleProductClick = (product: Product) => {
+    if (Number(product.SoLuongConLai) > 0) {
+      navigate(`products/${product.MaSanPham}`, { state: product });
+    }
+  };
+
   return (
     <>
       <List
         grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 3, xl: 4, xxl: 4 }}
         dataSource={products}
-        renderItem={(item) => (
-          <List.Item>
-            <StyledCard
-              cover={
-                <img
-                  alt={item.TenSanPham}
-                  src={item.HinhAnh}
-                  height={180}
-                  style={{
-                    cursor: "pointer",
-                  }}
-                  onClick={() => navigate(`products/${item.MaSanPham}`)}
-                />
-              }
-              actions={[
-                <Flex
-                  justify="space-between"
-                  style={{
-                    padding: "0 12px",
-                  }}
-                >
-                  <Button size="small" danger>
-                    Thêm vào giỏ hàng
-                  </Button>
-                  <Button type="primary" size="small">
-                    Đặt hàng
-                  </Button>
-                </Flex>,
-              ]}
-            >
-              <Card.Meta
-                description={
-                  <Flex vertical>
-                    <Text className="clamp-text">{item.TenSanPham}</Text>
-                    <Flex gap={8} align="center">
-                      {Number(item.PhanTramGiam) > 0 && (
+        renderItem={(item) => {
+          const outOfStock = Number(item.SoLuongConLai) === 0;
+          return (
+            <List.Item>
+              <StyledCard
+                outOfStock={outOfStock}
+                cover={
+                  <div style={{ position: "relative" }}>
+                    <img
+                      alt={item.TenSanPham}
+                      src={`https://clbtinhocued.me/${item.HinhAnh.DuongDan}`}
+                      height={180}
+                      style={{
+                        cursor: outOfStock ? "not-allowed" : "pointer",
+                      }}
+                      onClick={() => handleProductClick(item)}
+                    />
+                    {outOfStock && (
+                      <OutOfStockOverlay>
+                        <Tag color="error">Hết hàng</Tag>
+                      </OutOfStockOverlay>
+                    )}
+                  </div>
+                }
+              >
+                <Card.Meta
+                  description={
+                    <Flex vertical>
+                      <Text className="clamp-text">{item.TenSanPham}</Text>
+                      <Flex gap={8} align="center">
+                        {Number(item.PhanTramGiam) > 0 && (
+                          <Text
+                            delete
+                            style={{
+                              fontSize: "11px",
+                            }}
+                          >
+                            {Number(item.Gia).toLocaleString("vi-VN")} VNĐ
+                          </Text>
+                        )}
                         <Text
-                          delete
                           style={{
-                            fontSize: "11px",
+                            color: "#f69d7a",
                           }}
                         >
-                          {Number(item.Gia)} VNĐ
+                          {item.GiaSauGiam
+                            ? Number(item.GiaSauGiam).toLocaleString("vi-VN")
+                            : Number(item.Gia).toLocaleString("vi-VN")}
+                          VNĐ
                         </Text>
-                      )}
+                        {Number(item.PhanTramGiam) > 0 && (
+                          <Tag
+                            color="error"
+                            style={{
+                              height: "16px",
+                              fontSize: "10px",
+                              margin: 0,
+                              width: "40px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {`${Number(item.PhanTramGiam)}%`}
+                          </Tag>
+                        )}
+                      </Flex>
                       <Text
                         style={{
-                          color: "#f69d7a",
+                          fontSize: "12px",
                         }}
                       >
-                        {Number(item.Gia) -
-                          (Number(item.Gia) * Number(item.PhanTramGiam)) /
-                            100}{" "}
-                        VNĐ
+                        Đã bán {item.DaBan}
                       </Text>
-                      {Number(item.PhanTramGiam) > 0 && (
-                        <Tag
-                          color="error"
+                      {!outOfStock && (
+                        <Text
                           style={{
-                            height: "16px",
-                            fontSize: "10px",
-                            margin: 0,
-                            width: "40px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
+                            fontSize: "12px",
+                            color:
+                              Number(item.SoLuongConLai) < 10
+                                ? "orange"
+                                : "inherit",
                           }}
                         >
-                          {`${Number(item.PhanTramGiam)}%`}
-                        </Tag>
+                          Còn lại: {item.SoLuongConLai}
+                        </Text>
                       )}
                     </Flex>
-                    <Text
-                      style={{
-                        fontSize: "12px",
-                      }}
-                    >
-                      Đã bán {item.DaBan}
-                    </Text>
-                  </Flex>
-                }
-              />
-            </StyledCard>
-          </List.Item>
-        )}
+                  }
+                />
+              </StyledCard>
+            </List.Item>
+          );
+        }}
       />
       <Pagination
         align="center"

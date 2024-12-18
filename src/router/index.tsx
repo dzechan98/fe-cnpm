@@ -1,6 +1,8 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Cart, DetailProduct, Home } from "../pages";
 import { ROUTES } from "./constant";
+import { CartProvider } from "../contexts/CartContext";
+import { UserProvider } from "../contexts/UserContext";
 
 const useAppRouter = () => {
   return createBrowserRouter([
@@ -22,5 +24,11 @@ const useAppRouter = () => {
 export const Router: React.FC = () => {
   const appRouter = useAppRouter();
 
-  return <RouterProvider router={appRouter} />;
+  return (
+    <UserProvider>
+      <CartProvider>
+        <RouterProvider router={appRouter} />;
+      </CartProvider>
+    </UserProvider>
+  );
 };

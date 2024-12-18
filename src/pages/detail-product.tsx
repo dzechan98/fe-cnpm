@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Typography,
   Row,
@@ -9,65 +9,62 @@ import {
   Descriptions,
   InputNumber,
   Select,
-  Breadcrumb,
+  message,
 } from "antd";
-import {
-  HomeOutlined,
-  ShoppingCartOutlined,
-  ThunderboltOutlined,
-} from "@ant-design/icons";
+import { ArrowLeftOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Header } from "../components/Header";
 import ImageCarousel from "../components/ImageCarousel";
-import { useParams } from "react-router-dom";
-import { DetailProduct as DetailProductType, getDetailProduct } from "../api";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useCart } from "../contexts/CartContext";
+import { Product } from "../api";
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
 
 export const DetailProduct: React.FC = () => {
   const { id } = useParams();
-  const [detailProduct, setDetailProduct] = useState<DetailProductType | null>(
-    null
-  );
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const detailProduct = useMemo<Product>(() => location.state, [id]);
+  const { addItem } = useCart();
   const [images, setImages] = useState<string[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
-  const discountedPrice = 10;
+  const allowOrder = useMemo(
+    () => selectedColor && selectedSize && quantity,
+    [selectedColor, selectedSize, quantity]
+  );
 
   const handleAddToCart = () => {
-    if (!detailProduct) return;
+    if (!allowOrder) {
+      message.error(
+        "Vui lòng chọn đầy đủ thông tin trước khi thêm vào giỏ hàng"
+      );
+      return;
+    }
 
-    console.log("Added to cart:", {
-      productId: detailProduct.MaSanPham,
-      quantity,
-      size: selectedSize,
-      color: selectedColor,
+    addItem({
+      MaSanPham: detailProduct.MaSanPham,
+      TenSanPham: detailProduct.TenSanPham,
+      Gia: detailProduct.Gia,
+      HinhAnh: detailProduct.HinhAnh.DuongDan,
+      MaMau: String(selectedColor),
+      MaSize: String(selectedSize),
+      SoLuong: String(quantity),
+      TenMau: String(
+        detailProduct.MauSac?.find((i) => i.MaMauSac === selectedColor)?.MauSac
+      ),
+      TenSize: String(
+        detailProduct.Size?.find((i) => i.MaSize === selectedSize)?.Size
+      ),
+      PhanTramGiam: detailProduct.PhanTramGiam ?? 0,
     });
-  };
 
-  const handleOrder = () => {
-    if (!detailProduct) return;
-    console.log("Ordered:", {
-      productId: detailProduct.MaSanPham,
-      quantity,
-      size: selectedSize,
-      color: selectedColor,
-    });
+    message.success("Thêm thành công sản phẩm vào giỏ hàng");
   };
-
-  useEffect(() => {
-    const fetchDetailProduct = async () => {
-      try {
-        const response = await getDetailProduct(String(id));
-        setDetailProduct(response);
-      } catch (error) {
-        setDetailProduct({} as DetailProductType);
-      }
-    };
-    fetchDetailProduct();
-  }, [id]);
 
   useEffect(() => {
     if (!detailProduct) return;
@@ -76,7 +73,10 @@ export const DetailProduct: React.FC = () => {
       (item) => `https://clbtinhocued.me/${item.DuongDan}`
     );
 
-    setImages([detailProduct.HinhAnh.DuongDan, ...formatterImages]);
+    setImages([
+      `https://clbtinhocued.me/${detailProduct.HinhAnh.DuongDan}`,
+      ...formatterImages,
+    ]);
   }, [detailProduct]);
 
   return (
@@ -88,27 +88,14 @@ export const DetailProduct: React.FC = () => {
             padding: "20px",
           }}
         >
-          <div
+          <Button
+            type="text"
+            icon={<ArrowLeftOutlined />}
             style={{
               marginBottom: "20px",
             }}
-          >
-            <Breadcrumb
-              items={[
-                {
-                  href: "",
-                  title: <HomeOutlined />,
-                },
-                {
-                  href: "",
-                  title: detailProduct.TenDanhMuc,
-                },
-                {
-                  title: "Application",
-                },
-              ]}
-            />
-          </div>
+            onClick={() => navigate(-1)}
+          />
           <Row gutter={[32, 32]}>
             <Col xs={24} md={12}>
               <ImageCarousel images={images} />
@@ -118,14 +105,14 @@ export const DetailProduct: React.FC = () => {
               <Tag color="blue">{detailProduct.TenDanhMuc}</Tag>
               <Descriptions column={1} style={{ marginTop: "16px" }}>
                 <Descriptions.Item label="Giá">
-                  {Number(detailProduct.PhanTramGiam) > 0 && (
+                  {Number(detailProduct?.PhanTramGiam) > 0 && (
                     <span
                       style={{
                         textDecoration: "line-through",
                         marginRight: "8px",
                       }}
                     >
-                      {detailProduct.Gia} VNĐ
+                      {Number(detailProduct.Gia).toLocaleString("vi-VN")} VNĐ
                     </span>
                   )}
                   <span
@@ -134,15 +121,14 @@ export const DetailProduct: React.FC = () => {
                       color: "#f69d7a",
                     }}
                   >
-                    {Number(detailProduct.Gia) -
-                      (Number(detailProduct.Gia) *
-                        Number(detailProduct.PhanTramGiam ?? 0)) /
-                        100}{" "}
+                    {detailProduct.GiaSauGiam
+                      ? Number(detailProduct.GiaSauGiam).toLocaleString("vi-VN")
+                      : Number(detailProduct.Gia).toLocaleString("vi-VN")}
                     VNĐ
                   </span>
-                  {Number(detailProduct.PhanTramGiam) > 0 && (
+                  {Number(detailProduct?.PhanTramGiam) > 0 && (
                     <Tag color="red" style={{ marginLeft: "8px" }}>
-                      {discountedPrice}% OFF
+                      {Number(detailProduct.PhanTramGiam)}% OFF
                     </Tag>
                   )}
                 </Descriptions.Item>
@@ -157,43 +143,43 @@ export const DetailProduct: React.FC = () => {
                 {detailProduct.MoTa}
               </Paragraph>
               <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <Typography.Text strong>Size:</Typography.Text>
+                <Col span={8}>
+                  <Typography.Text strong>Kích cỡ:</Typography.Text>
                   <Select
                     style={{ width: "100%" }}
-                    placeholder="Select Size"
+                    placeholder="Chọn kích cỡ"
                     onChange={(value) => setSelectedSize(value)}
                   >
-                    {detailProduct?.Size.map((size) => (
-                      <Option key={size} value={size}>
-                        {size}
+                    {detailProduct?.Size?.map((size) => (
+                      <Option key={size.MaSize} value={size.MaSize}>
+                        {size.Size}
                       </Option>
                     ))}
                   </Select>
                 </Col>
-                <Col span={12}>
+                <Col span={8}>
                   <Typography.Text strong>Màu:</Typography.Text>
                   <Select
                     style={{ width: "100%" }}
-                    placeholder="Select Color"
+                    placeholder="Chọn màu"
                     onChange={(value) => setSelectedColor(value)}
                   >
-                    {detailProduct.MauSac.map((color) => (
-                      <Option key={color} value={color}>
-                        {color}
+                    {detailProduct.MauSac?.map((color) => (
+                      <Option key={color.MaMauSac} value={color.MaMauSac}>
+                        {color.MauSac}
                       </Option>
                     ))}
                   </Select>
                 </Col>
-              </Row>
-              <Row
-                align="middle"
-                style={{ marginTop: "16px", marginBottom: "16px" }}
-              >
                 <Col span={8}>
-                  <Typography.Text strong>Số lượng:</Typography.Text>
-                </Col>
-                <Col span={16}>
+                  <Typography.Text
+                    strong
+                    style={{
+                      display: "block",
+                    }}
+                  >
+                    Số lượng:
+                  </Typography.Text>
                   <InputNumber
                     min={1}
                     max={Number(detailProduct.SoLuongConLai)}
@@ -212,18 +198,6 @@ export const DetailProduct: React.FC = () => {
                     onClick={handleAddToCart}
                   >
                     Thêm vào giỏ hàng
-                  </Button>
-                </Col>
-                <Col span={12}>
-                  <Button
-                    type="primary"
-                    icon={<ThunderboltOutlined />}
-                    size="large"
-                    block
-                    danger
-                    onClick={handleOrder}
-                  >
-                    Đặt hàng ngay
                   </Button>
                 </Col>
               </Row>

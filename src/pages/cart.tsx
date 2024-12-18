@@ -1,193 +1,226 @@
-import React, { useState } from "react";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import React from "react";
 import {
-  List,
+  Table,
   Card,
   Button,
   InputNumber,
   Typography,
-  Row,
-  Col,
   Space,
-  Divider,
-  Breadcrumb,
-  Flex,
+  Layout,
+  Tag,
+  Empty,
+  Image,
+  message,
 } from "antd";
 import {
   DeleteOutlined,
-  HomeOutlined,
   ShoppingOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import { Header } from "../components/Header";
+import { CartItem, useCart } from "../contexts/CartContext";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "../router/constant";
+import { createOrder, OrderPayload } from "../api";
 
 const { Title, Text } = Typography;
+const { Content } = Layout;
 
-interface CartItem {
-  id: number;
-  name: string;
-  price: number;
-  color: string;
-  size: string;
-  quantity: number;
-  image: string;
-}
+export const Cart: React.FC = () => {
+  const navigate = useNavigate();
+  const { state, removeItem, updateItemQuantity, clearCart } = useCart();
 
-const initialCartItems: CartItem[] = [
-  {
-    id: 1,
-    name: "Premium Wireless Headphones",
-    price: 199.99,
-    color: "Trắng",
-    size: "XL",
-    quantity: 1,
-    image:
-      "https://images.unsplash.com/photo-1719937051124-91c677bc58fc?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxmZWF0dXJlZC1waG90b3MtZmVlZHwxfHx8ZW58MHx8fHx8",
-  },
-  {
-    id: 2,
-    name: "Smartphone",
-    color: "Trắng",
-    size: "XL",
-    price: 599.99,
-    quantity: 1,
-    image:
-      "https://images.unsplash.com/photo-1719937051124-91c677bc58fc?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxmZWF0dXJlZC1waG90b3MtZmVlZHwxfHx8ZW58MHx8fHx8",
-  },
-  {
-    id: 3,
-    name: "Laptop",
-    color: "Trắng",
-    size: "XL",
-    price: 999.99,
-    quantity: 1,
-    image:
-      "https://images.unsplash.com/photo-1719937051124-91c677bc58fc?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxmZWF0dXJlZC1waG90b3MtZmVlZHwxfHx8ZW58MHx8fHx8",
-  },
-];
-
-export const Cart = () => {
-  const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems);
-
-  const updateQuantity = (id: number, newQuantity: number) => {
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
+  const calculateSubtotal = (): number =>
+    state.items.reduce(
+      (total, item) =>
+        total +
+        parseFloat(item.Gia) *
+          (1 - parseFloat(item.PhanTramGiam) / 100) *
+          parseInt(item.SoLuong),
+      0
     );
-  };
-
-  const removeItem = (id: number) => {
-    setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
-  };
-
-  const calculateSubtotal = () => {
-    return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  };
 
   const handleContinueShopping = () => {
-    console.log("Continue shopping clicked");
-    // Implement navigation to product listing or home page
+    navigate(ROUTES.home);
   };
 
-  const handleProceedToCheckout = () => {
-    console.log("Proceed to checkout clicked");
-    // Implement checkout process
+  const handleProceedToCheckout = async () => {
+    const payload: OrderPayload = {
+      items: state.items.map((product) => ({
+        MaSanPham: product.MaSanPham,
+        MaSize: product.MaSize,
+        SoLuong: Number(product.SoLuong),
+        MaMauSac: product.MaMau,
+      })),
+    };
+    try {
+      await createOrder(payload);
+      message.success("Đặt hàng thành công");
+      clearCart();
+    } catch (error) {
+      console.log(error);
+      message.error("Đặt hàng thất bại do số lượng sản phẩm không đủ");
+    }
   };
+
+  const columns = [
+    {
+      title: "Sản phẩm",
+      dataIndex: "TenSanPham",
+      key: "TenSanPham",
+      render: (text: string, record: CartItem) => (
+        <Space>
+          <Image
+            width={80}
+            height={80}
+            src={`https://clbtinhocued.me/${record.HinhAnh}`}
+            alt={text}
+            style={{ objectFit: "cover" }}
+          />
+          <Space direction="vertical" size="small">
+            <Text strong>{text}</Text>
+            <Space>
+              <Tag color="blue">{record.TenSize}</Tag>
+              <Tag color="green">{record.TenMau}</Tag>
+            </Space>
+          </Space>
+        </Space>
+      ),
+    },
+    {
+      title: "Đơn giá",
+      dataIndex: "Gia",
+      key: "Gia",
+      render: (text: string, record: CartItem) => (
+        <Space direction="vertical" size="small">
+          <Text type="secondary" delete style={{ fontSize: "12px" }}>
+            {parseFloat(text).toLocaleString("vi-VN")} VNĐ
+          </Text>
+          <Text type="danger" strong>
+            {(
+              parseFloat(text) *
+              (1 - parseFloat(record.PhanTramGiam) / 100)
+            ).toLocaleString("vi-VN")}{" "}
+            VNĐ
+          </Text>
+          <Text type="warning" style={{ fontSize: "12px" }}>
+            Giảm {parseFloat(record.PhanTramGiam).toLocaleString()}%
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Số lượng",
+      dataIndex: "SoLuong",
+      key: "SoLuong",
+      render: (text: string, record: CartItem) => (
+        <InputNumber
+          min={1}
+          value={parseInt(text)}
+          onChange={(value) =>
+            updateItemQuantity(record, value?.toString() || "1")
+          }
+        />
+      ),
+    },
+    {
+      title: "Thành tiền",
+      key: "ThanhTien",
+      render: (_text: string, record: CartItem) => (
+        <Text strong>
+          {(
+            parseFloat(record.Gia) *
+            (1 - parseFloat(record.PhanTramGiam) / 100) *
+            parseInt(record.SoLuong)
+          ).toLocaleString("vi-VN")}{" "}
+          VNĐ
+        </Text>
+      ),
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      render: (_text: string, record: CartItem) => (
+        <Button
+          type="text"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => removeItem(record)}
+        >
+          Xóa
+        </Button>
+      ),
+    },
+  ];
 
   return (
-    <>
+    <Layout className="min-h-screen bg-gray-100">
       <Header />
-
-      <div style={{ padding: "20px" }}>
-        <Breadcrumb
-          items={[
-            {
-              href: "",
-              title: <HomeOutlined />,
-            },
-            {
-              href: "",
-              title: "Giỏ hàng",
-            },
-          ]}
-        />
-        <Title level={2}>Giỏ hàng</Title>
-        <List
-          itemLayout="horizontal"
-          dataSource={cartItems}
-          renderItem={(item) => (
-            <List.Item>
-              <Card style={{ width: "100%" }}>
-                <Row gutter={16} align="middle">
-                  <Col span={4}>
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      style={{ width: "100%" }}
-                    />
-                  </Col>
-                  <Col span={8}>
-                    <Flex vertical>
-                      <Text strong>{item.name}</Text>
-                      <Text>{item.size}</Text>
-                      <Text>{item.color}</Text>
-                    </Flex>
-                  </Col>
-                  <Col span={4}>
-                    <Text>{item.price.toFixed(2)} VNĐ</Text>
-                  </Col>
-                  <Col span={4}>
-                    <InputNumber
-                      min={1}
-                      value={item.quantity}
-                      onChange={(value) =>
-                        updateQuantity(item.id, value as number)
-                      }
-                    />
-                  </Col>
-                  <Col span={3}>
-                    <Text strong>
-                      {(item.price * item.quantity).toFixed(2)} VNĐ
-                    </Text>
-                  </Col>
-                  <Col span={1}>
-                    <Button
-                      type="text"
-                      icon={<DeleteOutlined />}
-                      onClick={() => removeItem(item.id)}
-                      aria-label="Remove item"
-                    />
-                  </Col>
-                </Row>
-              </Card>
-            </List.Item>
+      <Content className="px-4 sm:px-6 lg:px-8 py-8">
+        <Card className="shadow-md">
+          <Title level={2} className="mb-6">
+            <ShoppingCartOutlined className="mr-2" /> Giỏ hàng của bạn
+          </Title>
+          {state.items.length === 0 ? (
+            <Empty
+              description="Giỏ hàng của bạn đang trống"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Button
+                type="primary"
+                icon={<ShoppingOutlined />}
+                onClick={handleContinueShopping}
+              >
+                Tiếp tục mua sắm
+              </Button>
+            </Empty>
+          ) : (
+            <>
+              <Table
+                columns={columns}
+                dataSource={state.items}
+                pagination={false}
+                rowKey="MaSanPham"
+              />
+              <div
+                style={{
+                  marginTop: 24,
+                  textAlign: "right",
+                }}
+              >
+                <Title level={3}>
+                  Tổng cộng: {calculateSubtotal().toLocaleString("vi-VN")} VNĐ
+                </Title>
+              </div>
+              <div
+                style={{
+                  marginTop: 24,
+                  textAlign: "right",
+                }}
+              >
+                <Space size="large">
+                  <Button
+                    icon={<ShoppingOutlined />}
+                    onClick={handleContinueShopping}
+                    size="large"
+                  >
+                    Tiếp tục mua sắm
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<ShoppingCartOutlined />}
+                    onClick={handleProceedToCheckout}
+                    size="large"
+                  >
+                    Tiến hành đặt hàng
+                  </Button>
+                </Space>
+              </div>
+            </>
           )}
-        />
-        <Divider />
-        <Row justify="end">
-          <Col>
-            <Title level={3}>
-              Tổng giá: {calculateSubtotal().toFixed(2)}VNĐ
-            </Title>
-          </Col>
-        </Row>
-        <Row justify="end" style={{ marginTop: "24px" }}>
-          <Space size="large">
-            <Button
-              icon={<ShoppingOutlined />}
-              onClick={handleContinueShopping}
-            >
-              Tiếp tục mua sắm
-            </Button>
-            <Button
-              type="primary"
-              icon={<ShoppingOutlined />}
-              onClick={handleProceedToCheckout}
-            >
-              Đặt hàng
-            </Button>
-          </Space>
-        </Row>
-      </div>
-    </>
+        </Card>
+      </Content>
+    </Layout>
   );
 };
